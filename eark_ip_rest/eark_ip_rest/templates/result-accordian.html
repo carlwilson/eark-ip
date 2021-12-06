@@ -1,0 +1,143 @@
+{% extends "page.html" %}
+{% block title %}Home{% endblock %}
+{% block page_content %}
+<h1>Your Package: {{ java_report.package.details.name }}</h1>
+<p>Uploaded On: {{ timestamp }}</p>
+<p>Validation Result: {{ compliance }}</p>
+  <div class="accordion" id="accordian_results">
+    <div class="card">
+      <div class="card-header" id="java_head">
+        <h2 class="mb-0">
+          <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#java_result" aria-expanded="true" aria-controls="java_result">
+            Commons-ip Validator {% if java_summary.is_valid %}VALID{% else %}INVALID{% endif %} {{ java_summary.errors }} errors, {{ java_summary.warnings }} warnings, {{ java_summary.infos }} notes
+          </button>
+        </h2>
+      </div>
+      <div id="java_result" class="collapse show" aria-labelledby="java_head" data-parent="#accordian_results">
+        <div class="card-body">
+          {% if java_report is defined %}
+              {{ report_tab(java_report) }}
+          {% else %}
+              Sorry, the commons-ip Validator failed with an unexpected error.
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" id="python_head">
+        <h2 class="mb-0">
+          <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#python_result" aria-expanded="false" aria-controls="python_result">
+            PyIP Validator {% if python_summary.is_valid %}VALID{% else %}INVALID{% endif %} {{ python_summary.errors }} errors, {{ python_summary.warnings }} warnings, {{ python_summary.infos }} notes
+          </button>
+        </h2>
+      </div>
+      <div id="python_result" class="collapse" aria-labelledby="python_head" data-parent="#accordian_results">
+        <div class="card-body">
+          {% if python_report is defined %}
+              {{ report_tab(python_report) }}
+          {% else %}
+              Sorry, the PyIP Validator failed with an unexpected error.
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock page_content %}
+{% block page_script %}
+{% endblock page_script %}
+
+{% macro report_tab(report) %}
+<h3>Structure</h3>
+<p class="lead">Stucture Validation: {{ struct_badge(report.structure.status) }}</p>
+<h4>Structure Checks</h4>
+<table class="table table-striped">
+  <tr>
+    <th>ID</th>
+    <th>Severity</th>
+    <th>Message</th>
+  </tr>
+  {{ struct_rows(report.structure.messages) }}
+</table>
+
+<h3>Metadata</h3>
+<h4>Schema Checks</h4>
+<p class="lead">Schema Validation: {{ validation_badge(report.metadata.schema_results.status) }}</p>
+<table class="table table-striped">
+  <tr>
+    <th>ID</th>
+    <th>Severity</th>
+    <th>Location</th>
+    <th>Message</th>
+  </tr>
+  {% for message in report.metadata.schema_results.messages %}
+    <tr>
+      <td>{{ message.rule_id }}</td>
+      <td>{{ message.severity }}</td>
+      <td>{{ message.location }}</td>
+      <td>{{ message.message }}</td>
+    </tr>
+  {% endfor %}
+</table>
+<h4>Metadata Checks</h4>
+<p class="lead">Metadata Validation: {{ validation_badge(report.metadata.schematron_results.status) }}</p>
+<table class="table table-striped">
+  <tr>
+    <th>ID</th>
+    <th>Severity</th>
+    <th>Location</th>
+    <th>Message</th>
+  </tr>
+  {{ prop_rows(report.metadata.schematron_results.messages) }}
+
+</table>
+{% endmacro %}
+
+{% macro prop_rows(results) %}
+{% for message in results %}
+  {{ prop_row(message) }}
+{% endfor %}
+{% endmacro %}
+
+{% macro prop_row(message) %}
+  <tr>
+    <td>{{ rule_link(message.rule_id) }}</td>
+    <td>{{ message.severity }}</td>
+    <td>{{ message.location }}</td>
+    <td>{{ message.message }}</td>
+    <td></td>
+  </tr>
+{% endmacro -%}
+
+{% macro struct_rows(messages) %}
+{% for message in messages %}
+  {{ struct_row(message) }}
+{% endfor %}
+{% endmacro %}
+
+{% macro struct_row(message) %}
+  <tr>
+    <td>{{ rule_link(message.rule_id) }}</td>
+    <td>{{ message.severity }}</td>
+    <td>{{ message.message }}</td>
+  </tr>
+{% endmacro %}
+
+{% macro validation_badge(result) %}
+  <span class="{{ validation_badge_class(result) }}">{% if result|lower == 'valid' %}Valid{% else %}Invalid{% endif %}</span>
+{% endmacro %}
+
+{% macro validation_badge_class(result) %}
+  badge badge-{% if result|lower == 'valid' %}success{% else %}danger{% endif %}
+{% endmacro %}
+
+{% macro struct_badge(status) %}
+  <span class="{{ struct_badge_class(status) }}">{% if status == 'WellFormed' %}Well Formed{% else %}Not Well Formed{% endif %}</span>
+{% endmacro %}
+
+{% macro struct_badge_class(status) %}
+  badge badge-{% if status == 'WellFormed' %}success{% else %}danger{% endif %}
+{% endmacro %}
+
+{% macro rule_link(rule_id) %}
+  <a href="https://earkcsip.dilcis.eu/#{{ rule_id }}">{{ rule_id }}</a>
+{% endmacro %}
