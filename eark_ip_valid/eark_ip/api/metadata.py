@@ -50,6 +50,7 @@ from eark_ip.model import (
 XLINK_NS = 'http://www.w3.org/1999/xlink'
 METS_NS = 'http://www.loc.gov/METS/'
 QUAL_METS_NS = '{{{}}}'.format(METS_NS)
+METS_FILENAME = 'METS.xml'
 
 DILCIS_EXT_NS = 'https://DILCIS.eu/XML/METS/CSIPExtensionMETS'
 SCHEMATRON_NS = "{http://purl.oclc.org/dsdl/schematron}"
@@ -107,25 +108,7 @@ class MetsValidator():
         self.rootpath, mets = _handle_rel_paths(self.rootpath, mets)
         try:
             parsed_mets = etree.iterparse(mets, events=('start', 'end'), schema=self.schema_wrapper)
-            for event, element in parsed_mets:
-                # Define what to do with specific tags.
-                if event == 'end' and element.tag == _q(METS_NS, 'file'):
-                    # files
-                    self.file_refs.append(_file_ref_from_ele(element))
-                elif event == 'end' and \
-                    element.tag == _q(METS_NS, 'fileGrp') and \
-                    element.attrib.get('USE', '').startswith('Representations/'):
-                    # representation mets files
-                    rep = element.attrib['USE'].rsplit('/', 1)[1]
-                    for file in element.iter(_q(METS_NS, 'file')):
-                        file_ref = _file_ref_from_ele(file)
-                        if os.path.basename(file_ref.path).casefold() == 'METS.xml'.casefold():
-                            self.represent_mets[rep] = file_ref
-                        else:
-                            self.file_refs.append(file_ref)
-                elif event == 'end' and element.tag in [_q(METS_NS, 'dmdSec'), _q(METS_NS, 'amdSec')]:
-                    for ref in element.iter(_q(METS_NS, 'mdRef')):
-                        self.file_refs.append(_file_ref_from_mdref_ele(ref))
+            self._element_processor(parsed_mets)
         except etree.XMLSyntaxError as synt_err:
             self.validation_errors.append(TestResult(rule_id="METS", location=mets,
                                           message=synt_err.msg.replace(QUAL_METS_NS, "mets:"),
@@ -136,6 +119,31 @@ class MetsValidator():
         status = MetadataStatus.NOTVALID if self.validation_errors else MetadataStatus.VALID
         return status == MetadataStatus.VALID, MetadataChecks(status=status,
                                                               messages=self.validation_errors)
+
+    def _element_processor(self, parsed_mets):
+        for event, element in parsed_mets:
+            # Define what to do with specific tags.
+            if event == 'end' and element.tag == _q(METS_NS, 'file'):
+                # files
+                self.file_refs.append(_file_ref_from_ele(element))
+            elif event == 'end' and \
+                element.tag == _q(METS_NS, 'fileGrp') and \
+                element.attrib.get('USE', '').startswith('Representations/'):
+                # representation mets files
+                self._rep_processor(element)
+            elif event == 'end' and element.tag in [_q(METS_NS, 'dmdSec'), _q(METS_NS, 'amdSec')]:
+                for ref in element.iter(_q(METS_NS, 'mdRef')):
+                    self.file_refs.append(_file_ref_from_mdref_ele(ref))
+
+    def _rep_processor(self, element):
+        # representation mets files
+        rep = element.attrib['USE'].rsplit('/', 1)[1]
+        for file in element.iter(_q(METS_NS, 'file')):
+            file_ref = _file_ref_from_ele(file)
+            if os.path.basename(file_ref.path).casefold() == METS_FILENAME.casefold():
+                self.represent_mets[rep] = file_ref
+            else:
+                self.file_refs.append(file_ref)
 
 def _file_ref_from_ele(element):
     algid = element.attrib.get('CHECKSUMTYPE', None)
@@ -326,7 +334,7 @@ def validate_ip(to_validate, struct_map):
     schematron_results = {}
     mets_files = {}
     validator = MetsValidator(to_validate)
-    mets_path = os.path.join(to_validate, 'METS.xml')
+    mets_path = os.path.join(to_validate, METS_FILENAME)
     results = validator.validate_mets(mets_path)
     schema_results['root'] = results
     mets_files['root'] = validator.file_refs
@@ -378,36 +386,50 @@ def _check_manifest(to_validate, mets_refs):
             if ref.checksum:
                 algs.add(ref.checksum.algorithm)
     manifest = MNFST.manifest_from_directory(to_validate, checksum_algs=algs)
+    return _get_manifest_errors(mets_refs, manifest)
+
+def _get_manifest_errors(mets_refs, manifest):
     errors = []
     for key, refs in mets_refs.items():
         for file_ref in refs:
-            ref_path = str(file_ref.path) if key == 'root' else os.path.join('representations',
-                                                                             key,
-                                                                             str(file_ref.path))
-            ref_matched = False
-            for entry in manifest.entries:
-                if entry.path == ref_path:
-                    ref_matched = True
-                    if str(entry.size) != str(file_ref.size):
-                        errors.append(TestResult('CSIP69',
-                                                 'mets/fileSec/fileGrp/file/@SIZE',
-                             'mets/fileSec/fileGrp/file/@SIZE: {} declared in {} METS.xml '
-                             'and size of file {}: {} isn\'t equal.'.format(file_ref.size,
-                                                                              key,
-                                                                              entry.path,
-                                                                              entry.size),
-                                        Severity.ERROR))
-                    checksum_matched = False
-                    if file_ref.checksum:
-                        for checksum in entry.checksums:
-                            if file_ref.checksum and checksum == file_ref.checksum:
-                                checksum_matched = True
-                        if not checksum_matched:
-                            errors.append(TestResult('CSIP71',
-                                                     'mets/fileSec/fileGrp/file/@CHECKSUM',
-                                 'mets/fileSec/fileGrp/file/@CHECKSUM: {} declared in {} METS.xml '
-                                 'and checksum of file {} isn\'t equal.'.format(file_ref.checksum.value,
-                                                                                key,
-                                                                                entry.path),
-                                            Severity.ERROR))
+            errors += _proc_file_ref(file_ref, key, manifest)
     return errors
+
+def _proc_file_ref(file_ref, key, manifest):
+    errors = []
+    ref_path = str(file_ref.path) if key == 'root' else os.path.join('representations',
+                                                                        key,
+                                                                        str(file_ref.path))
+    for entry in manifest.entries:
+        if entry.path == ref_path:
+            errors += _check_manifest_entry(entry, file_ref, key)
+    return errors
+
+def _check_manifest_entry(entry, file_ref, key):
+    errors = []
+    if str(entry.size) != str(file_ref.size):
+        errors.append(TestResult('CSIP69',
+                                    'mets/fileSec/fileGrp/file/@SIZE',
+                'mets/fileSec/fileGrp/file/@SIZE: {} declared in {} {} '
+                'and size of file {}: {} isn\'t equal.'.format(file_ref.size,
+                                                                key,
+                                                                entry.path,
+                                                                entry.size,
+                                                                METS_FILENAME),
+                        Severity.ERROR))
+    checksum_matched = False
+    if file_ref.checksum:
+        for checksum in entry.checksums:
+            if file_ref.checksum and checksum == file_ref.checksum:
+                checksum_matched = True
+        if not checksum_matched:
+            errors.append(TestResult('CSIP71',
+                                        'mets/fileSec/fileGrp/file/@CHECKSUM',
+                    'mets/fileSec/fileGrp/file/@CHECKSUM: {} declared in {} {} '
+                    'and checksum of file {} isn\'t equal.'.format(file_ref.checksum.value,
+                                                                key,
+                                                                entry.path,
+                                                                METS_FILENAME),
+                            Severity.ERROR))
+    return errors
+    

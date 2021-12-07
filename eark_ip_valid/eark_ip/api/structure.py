@@ -316,6 +316,22 @@ class PackageStructTests():
         return results
 
     def get_package_results(self):
+        results = self.check_schema()
+        results += self.check_docs()
+        return results
+
+    def check_docs(self):
+        results = []
+        if not self.struct_tests.has_documentation():
+            has_dox = False
+            for tests in self.representations.values():
+                if not has_dox:
+                    has_dox = tests.has_documentation()
+            if not has_dox:
+                results.append(test_result_from_id(16, self.name))
+        return results
+
+    def check_schema(self):
         results = []
         if not self.struct_tests.has_schemas():
             has_schema = False
@@ -324,13 +340,6 @@ class PackageStructTests():
                     has_schema = tests.has_schemas()
             if not has_schema:
                 results.append(test_result_from_id(15, self.name))
-        if not self.struct_tests.has_documentation():
-            has_dox = False
-            for tests in self.representations.values():
-                if not has_dox:
-                    has_dox = tests.has_documentation()
-            if not has_dox:
-                results.append(test_result_from_id(16, self.name))
         return results
 
     def get_struct_map(self):

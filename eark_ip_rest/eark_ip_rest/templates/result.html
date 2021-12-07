@@ -2,26 +2,34 @@
 {% block title %}Home{% endblock %}
 {% block page_content %}
 <h1>E-ARK IP Online Validator</h1>
-<p>Package: {{ java_report.package.details.name }}</p>
+<p>Package: {{ python_report.package.details.name }}</p>
 <p>Uploaded On: {{ timestamp }}</p>
 <h2>Validation Result: {{ compliance_badge(compliance) }}</h2>
 {{ compliance_message(compliance) }}
 <ul class="nav nav-tabs" id="myTab" role="tablist">
   <li class="nav-item" role="presentation">
+    {% if java_summary is defined %}
     <a class="nav-link active" id="java-tab" data-toggle="tab" href="#java" role="tab" aria-controls="java" aria-selected="true">
       <h3>Commons-ip Validator {{ validation_badge(java_summary.result) }}
-      {{ rule_summary(java_summary.errors, "errors") }}
-      {{ rule_summary(java_summary.warnings, "warnings") }}
-      {{ rule_summary(java_summary.infos, "notes") }}</h3>
+      {% if java_summary.errors is defined %}{{ rule_summary(java_summary.errors, "errors") }}{% endif %}
+      {% if java_summary.warnings is defined %}{{ rule_summary(java_summary.warnings, "warnings") }}{% endif %}
+      {% if java_summary.infos is defined %}{{ rule_summary(java_summary.infos, "notes") }}{% endif %}</h3>
     </a>
+    {% else %}
+    <p>Sorry, the commons-ip Validator failed with an unexpected error.</p>
+    {% endif %}
   </li>
   <li class="nav-item" role="presentation">
+    {% if python_summary is defined %}
     <a class="nav-link" id="python-tab" data-toggle="tab" href="#python" role="tab" aria-controls="python" aria-selected="false">
       <h3>PyIP Validator {{ validation_badge(python_summary.result) }}
-      {{ rule_summary(python_summary.errors, "errors") }}
-      {{ rule_summary(python_summary.warnings, "warnings") }}
-      {{ rule_summary(python_summary.infos, "notes") }}</h3>
+      {% if python_summary.errors is defined %}{{ rule_summary(python_summary.errors, "errors") }}{% endif %}
+      {% if python_summary.warnings is defined %}{{ rule_summary(python_summary.warnings, "warnings") }}{% endif %}
+      {% if python_summary.infos is defined %}{{ rule_summary(python_summary.infos, "notes") }}{% endif %}</h3>
     </a>
+    {% else %}
+    <p>Sorry, the PyIP Validator failed with an unexpected error.</p>
+    {% endif %}
   </li>
 </ul>
 <div class="tab-content" id="results-content">
@@ -57,43 +65,52 @@
 {% endblock page_script %}
 
 {% macro report_tab(report) %}
-<h4>Structural requirements checks {{ struct_badge(report.structure.status) }}</h4>
-{% if report.structure.messages is defined and report.structure.messages|length > 0 %}
+{% if report.metadata is defined %}
+  <h4>Structural requirements checks {{ struct_badge(report.structure.status) }}</h4>
+  {% if report.structure.messages is defined and report.structure.messages|length > 0 %}
+    <table class="table table-striped" data-toggle="table">
+      <thead class="thead-dark">
+        <tr>
+          <th data-field="id" data-sortable="true" data-sorter="idSorter">ID</th>
+          <th data-field="level" data-sortable="true" data-sorter="statusSorter">Level</th>
+          <th data-field="message" data-sortable="true">Message</th>
+        </tr>
+      </thead>
+      <tbody>
+      {{ struct_rows(report.structure.messages) }}
+      </tbody>
+    </table>
+  {% endif %}
+{% endif %}
+
+{% if report.metadata is defined %}
+  <h4>Metadata requirement Checks: {{ metadata_badge(report.metadata) }}</h4>
+  {% if (report.metadata.schema_results is defined and report.metadata.schema_results.messages|length > 0) or
+    (report.metadata.schematron_results is defined and report.metadata.schematron_results.messages|length > 0) %}
   <table class="table table-striped" data-toggle="table">
     <thead class="thead-dark">
       <tr>
         <th data-field="id" data-sortable="true" data-sorter="idSorter">ID</th>
         <th data-field="level" data-sortable="true" data-sorter="statusSorter">Level</th>
-        <th data-field="message" data-sortable="true">Message</th>
+        <th data-field="message" data-sortable="true">Location &amp; Message</th>
       </tr>
     </thead>
     <tbody>
-    {{ struct_rows(report.structure.messages) }}
+    {% if report.metadata.schema_results is defined %}
+      {% for message in report.metadata.schema_results.messages %}
+        <tr>
+          <td><a href="https://earkcsip.dilcis.eu/#53-use-of-mets">METS XML</a></td>
+          <td>{{ severity_badge(message.severity) }}</td>
+          <td><p class="text-monospace">{{ message.location }}</p><p class="message">{{ message.message }}</p></td>
+        </tr>
+      {% endfor %}
+    {% endif %}
+    {% if report.metadata.schematron_results is defined %}
+      {{ prop_rows(report.metadata.schematron_results.messages) }}
+    {% endif %}
     </tbody>
   </table>
-{% endif %}
-
-<h4>Metadata requirement Checks: {{ metadata_badge(report.metadata) }}</h4>
-{% if report.metadata.schema_results.messages|length > 0 or report.metadata.schematron_results.messages|length > 0 %}
-<table class="table table-striped" data-toggle="table">
-  <thead class="thead-dark">
-    <tr>
-      <th data-field="id" data-sortable="true" data-sorter="idSorter">ID</th>
-      <th data-field="level" data-sortable="true" data-sorter="statusSorter">Level</th>
-      <th data-field="message" data-sortable="true">Location &amp; Message</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for message in report.metadata.schema_results.messages %}
-    <tr>
-      <td><a href="https://earkcsip.dilcis.eu/#53-use-of-mets">METS XML</a></td>
-      <td>{{ severity_badge(message.severity) }}</td>
-      <td><p class="text-monospace">{{ message.location }}</p><p class="message">{{ message.message }}</p></td>
-    </tr>
-  {% endfor %}
-  {{ prop_rows(report.metadata.schematron_results.messages) }}
-  </tbody>
-</table>
+  {% endif %}
 {% endif %}
 {% endmacro %}
 
@@ -155,11 +172,11 @@
 {% endmacro %}
 
 {% macro metadata_badge(result) %}
-  <span class="{{ metadata_badge_class(result) }}">{% if result.schema_results.status|lower == 'valid' and result.schematron_results.status|lower == 'valid' %}PASSED{% else %}FAILED{% endif %}</span>
+  <span class="{{ metadata_badge_class(result) }}">{% if result is not defined or result.schema_results is not defined %}NOT EXECUTED{% elif result.schema_results.status|lower == 'valid' and result.schematron_results.status|lower == 'valid' %}PASSED{% else %}FAILED{% endif %}</span>
 {% endmacro %}
 
 {% macro metadata_badge_class(result) %}
-  badge badge-{% if result.schema_results.status|lower == 'valid' and result.schematron_results.status|lower == 'valid' %}success{% else %}danger{% endif %}
+  badge badge-{% if result is defined and result.schema is defined and result.schema_results.status|lower != 'valid' and result.schematron_results.status|lower != 'valid' %}danger{% else %}success{% endif %}
 {% endmacro %}
 
 {% macro struct_badge(status) %}

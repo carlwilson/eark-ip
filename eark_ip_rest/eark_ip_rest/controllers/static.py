@@ -62,8 +62,8 @@ class ResultSummary():
     def __init__(self, report):
         self.errors, self.warnings, self.infos = _get_message_summary(report)
         self.structure = report.structure.status
-        self.schema = report.metadata.schema_results.status
-        self.schematron = report.metadata.schematron_results.status
+        self.schema = report.metadata.schema_results.status if report.metadata else None
+        self.schematron = report.metadata.schematron_results.status if report.metadata else None
 
     @property
     def is_valid(self):
@@ -91,24 +91,20 @@ def _comp_reps(rep_one, rep_two):
     return 'Valid' if rep_one.is_valid else 'Invalid'
 
 def _get_message_summary(report):
+    all_messages = []
+    if report.structure:
+        all_messages += report.structure.messages
+    if report.metadata and report.metadata.schema_results:
+        all_messages += report.metadata.schema_results.messages
+    if report.metadata and report.metadata.schematron_results:
+        all_messages += report.metadata.schematron_results.messages
+    return _count_message_types(all_messages)
+
+def _count_message_types(messages):
     infos = 0
     warns = 0
     errs = 0
-    for message in report.structure.messages:
-        if message.severity.casefold() == 'info':
-            infos+=1
-        elif message.severity.casefold() == 'warn':
-            warns+=1
-        else:
-            errs+=1
-    for message in report.metadata.schema_results.messages:
-        if message.severity.casefold() == 'info':
-            infos+=1
-        elif message.severity.casefold() == 'warn':
-            warns+=1
-        else:
-            errs+=1
-    for message in report.metadata.schematron_results.messages:
+    for message in messages:
         if message.severity.casefold() == 'info':
             infos+=1
         elif message.severity.casefold() == 'warn':

@@ -27,9 +27,9 @@ import lxml.etree as ET
 
 from importlib_resources import files
 
-import eark_ip.forge.resources.profiles as PROFILES
-import eark_ip.forge.resources.schemas as SCHEMA
-from eark_ip.forge.structure import REQUIREMENTS
+import eark_ip.api.resources.profiles as PROFILES
+import eark_ip.api.resources.schemas as SCHEMA
+from eark_ip.api.structure import REQUIREMENTS
 
 METS_PROF_SCHEMA = ET.XMLSchema(file=str(files(SCHEMA).joinpath('mets.profile.v2-0.xsd')))
 CSIP_XML = str(files(PROFILES).joinpath('E-ARK-CSIP.xml'))
@@ -135,9 +135,18 @@ class Specification:
     def from_element(cls, spec_ele, schema=METS_PROF_SCHEMA, add_struct=False):
         """Create a Specification from an XML element."""
         version = spec_ele.get('ID')
+        name, date, requirements = cls.proc_child_eles(spec_ele)
+        # Loop through the child eles
+        if add_struct:
+            # Add the structural requirements
+            requirements['structure'] = Specification.StructuralRequirement._get_struct_reqs()
+        # Return the TestCase instance
+        return cls(name, version, date, requirements=requirements)
+
+    @classmethod
+    def proc_child_eles(cls, spec_ele):
         name = date = ''
         requirements = {}
-        # Loop through the child eles
         for child in spec_ele:
             if child.tag == '{}title'.format(METS_NS):
                 # Process the title element
@@ -146,21 +155,20 @@ class Specification:
                 # Grab the requirement text value
                 date = child.text
             elif child.tag == '{}structural_requirements'.format(METS_NS):
-                for sect_ele in child:
-                    section = sect_ele.get('ID')
-                    reqs = []
-                    for req_ele in sect_ele:
-                        requirement = cls.Requirement.from_element(req_ele)
-                        if not requirement.id.startswith('REF_'):
-                            reqs.append(cls.Requirement.from_element(req_ele))
-                    requirements[section] = reqs
-        if add_struct:
-            # Add the structural requirements
-            struct_reqs = Specification.StructuralRequirement._get_struct_reqs()
-            requirements['structure'] = struct_reqs
-        # Return the TestCase instance
-        return cls(name, version, date, requirements=requirements)
+                cls.proc_struct_sections(child, requirements)
+        return name, date, requirements
 
+    @classmethod
+    def proc_struct_sections(cls, child, requirements):
+        for sect_ele in child:
+            section = sect_ele.get('ID')
+            reqs = []
+            for req_ele in sect_ele:
+                requirement = cls.Requirement.from_element(req_ele)
+                if not requirement.id.startswith('REF_'):
+                    reqs.append(cls.Requirement.from_element(req_ele))
+            requirements[section] = reqs
+        
     class Requirement():
         """Encapsulates a requirement."""
         def __init__(self, req_id, name, level="MUST", xpath=None, cardinality=None):
