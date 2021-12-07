@@ -164,11 +164,11 @@
 {% endmacro %}
 
 {% macro validation_badge(result) %}
-  <span class="{{ validation_badge_class(result) }}">{% if result|lower == 'valid' %}Valid{% else %}Invalid{% endif %}</span>
+  <span class="{{ validation_badge_class(result) }}">{% if result|lower == 'valid' %}Valid{% elif result|lower == 'notvalid' %}Invalid{% else %}FAULT{% endif %}</span>
 {% endmacro %}
 
 {% macro validation_badge_class(result) %}
-  badge badge-{% if result|lower == 'valid' %}success{% else %}danger{% endif %}
+  badge badge-{% if result|lower == 'valid' %}success{% elif result|lower == 'notvalid' %}danger{% else %}dangedarkr{% endif %}
 {% endmacro %}
 
 {% macro metadata_badge(result) %}

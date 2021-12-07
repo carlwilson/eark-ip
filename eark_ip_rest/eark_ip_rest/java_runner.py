@@ -33,7 +33,7 @@ import eark_ip_rest.resources as RES
 MAIN_OPTS = [
     'java',
     '-jar',
-    files(RES).joinpath('commons-ip2-cli-2.0.0.jar'),
+    files(RES).joinpath('commons-ip2-cli-2.0.1.jar'),
     'validate',
     '-i'
 ]

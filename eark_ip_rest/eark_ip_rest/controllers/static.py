@@ -23,6 +23,7 @@
 # under the License.
 #
 """ Flask application routes for E-ARK Python IP Validator. """
+import logging
 import os
 from datetime import datetime
 from flask import render_template, request
@@ -33,6 +34,8 @@ from eark_ip_rest import java_runner as JR
 from eark_ip.model import StructStatus, MetadataStatus  # noqa: E501
 import eark_ip.api.packages as PKG
 
+LOG = logging.getLogger(__name__)
+
 def home():
     """Application home page."""
     return render_template('home.html')
@@ -42,7 +45,9 @@ def result():
     ip_file = request.files['ip_file']
     body = request.form
     dest_path = _check_validation_params(body, ip_file)
-    _, java_report, _ = JR.validate_ip(dest_path)
+    ret_code, java_report, stderr = JR.validate_ip(dest_path)
+    if ret_code != 0:
+        LOG.error("Java Runner failed, ret_code: %d, stderr: %s", ret_code, stderr)
     java_summary = ResultSummary(java_report) if java_report else None
     print(str(java_summary))
     validator = PKG.PackageValidator(dest_path)
