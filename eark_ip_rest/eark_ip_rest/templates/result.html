@@ -174,7 +174,7 @@
 {% endmacro %}
 
 {% macro metadata_badge(result) %}
-  <span class="{{ metadata_badge_class(result) }}">{% if result is not defined or result.schema_results or result.schematron_results is not defined %}FAILED{% elif result.schema_results.status|lower == 'valid' and result.schematron_results.status|lower == 'valid' %}PASSED{% else %}FAILED{% endif %}</span>
+  <span class="{{ metadata_badge_class(result) }}">{% if result is not defined or result.schema_results is not defined or result.schematron_results is not defined %}FAILED{% elif result.schema_results.status|lower == 'valid' and result.schematron_results.status|lower == 'valid' %}PASSED{% else %}FAILED{% endif %}</span>
 {% endmacro %}
 
 {% macro metadata_badge_class(result) %}

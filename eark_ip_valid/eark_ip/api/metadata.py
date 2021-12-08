@@ -263,6 +263,8 @@ class ValidationRules():
             return True
         if rule_id in ('CSIP97', 'CSIP113') and not struct.has_schemas():
             return True
+        if rule_id == 'CSIP114' and not struct.has_representations():
+            return True;
         return False
     
     def _process_ele(self, rule_id, rule, ele):
