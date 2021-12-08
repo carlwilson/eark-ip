@@ -14,6 +14,8 @@
         <assert id="CSIP31" role="WARN" test="mets:amdSec">If administrative / preservation metadata is available, it must be described using the administrative metadata section (amdSec) element. All administrative metadata is present in a single amdSec element.</assert>
         <assert id="CSIP58" role="WARN" test="mets:fileSec">The transferred content is placed in the file section in different file group elements, described in other requirements.</assert>
         <assert id="CSIP80" role="ERROR" test="mets:structMap">Each METS file must include ONE structural map structMap element used exactly as described here.</assert>
+        <assert id="CSIP81" role="ERROR" test="count(//mets:structMap/@TYPE[. = 'PHYSICAL']) = 1">The mets/structMap/@TYPE attribute must take the value “PHYSICAL” from the vocabulary.</assert>
+        <assert id="CSIP82" role="ERROR" test="count(//mets:structMap/@LABEL[. = 'CSIP']) = 1">The mets/structMap/@LABEL attribute value is set to “CSIP” from the vocabulary.</assert>
         <assert id="CSIP117" role="ERROR" test="mets:metsHdr">There MUST be a general element that describes the package.</assert>
       </rule>
   </pattern>

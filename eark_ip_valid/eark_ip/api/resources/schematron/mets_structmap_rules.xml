@@ -4,10 +4,6 @@
   <ns prefix="xlink" uri="http://www.w3.org/1999/xlink" />
   <pattern id="METS_structmap_element">
     <title>Use of the METS structural map.</title>
-    <rule context="/mets:mets/mets:structMap">
-      <assert id="CSIP81" role="ERROR" test="@TYPE = 'PHYSICAL'">The mets/structMap/@TYPE attribute must take the value “PHYSICAL” from the vocabulary.</assert>
-      <assert id="CSIP82" role="ERROR" test="@LABEL = 'CSIP'">The mets/structMap/@LABEL attribute value is set to “CSIP” from the vocabulary.</assert>
-    </rule>
     <rule context="/mets:mets/mets:structMap[@LABEL = 'CSIP']">
       <assert id="CSIP83" role="ERROR" test="@ID">An xml:id identifier for the structural description (structMap) used for internal package references. It must be unique within the package.</assert>
       <assert id="CSIP84" role="ERROR" test="mets:div">The structural map MUST comprises a single division.</assert>

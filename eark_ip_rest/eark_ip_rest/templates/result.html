@@ -69,7 +69,6 @@
   <h4>Structural requirements checks {{ struct_badge(report.structure.status) }}</h4>
   {% if report.structure.messages is defined and report.structure.messages|length > 0 %}
     <table class="table table-striped" data-toggle="table">
-      <caption>Structural requirement check results</caption>
       <thead class="thead-dark">
         <tr>
           <th scope="col" data-field="id" data-sortable="true" data-sorter="idSorter">ID</th>
@@ -89,7 +88,6 @@
   {% if (report.metadata.schema_results is defined and report.metadata.schema_results.messages|length > 0) or
     (report.metadata.schematron_results is defined and report.metadata.schematron_results.messages|length > 0) %}
   <table class="table table-striped" data-toggle="table">
-    <caption>Metadata requirement check results</caption>
     <thead class="thead-dark">
       <tr>
         <th scope="col" data-field="id" data-sortable="true" data-sorter="idSorter">ID</th>
