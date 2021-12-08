@@ -3,13 +3,14 @@
 {% block page_content %}
   <h2>About the E-ARK IP Validator</h2>
   <table class="table table-striped">
+    <caption>Validator about details.</caption>
     <tr>
-      <th>Version</th>
+      <th scope="col">Version</th>
       <td>{{ version }}</td>
     </tr>
     {%- for key, value in config.items() %}
     <tr>
-      <th>{{ key }}</th>
+      <th scope="col">{{ key }}</th>
       <td>{{ value }}</td>
       {% endfor -%}
     </tr>

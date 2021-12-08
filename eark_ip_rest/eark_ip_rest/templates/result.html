@@ -69,11 +69,12 @@
   <h4>Structural requirements checks {{ struct_badge(report.structure.status) }}</h4>
   {% if report.structure.messages is defined and report.structure.messages|length > 0 %}
     <table class="table table-striped" data-toggle="table">
+      <caption>Structural requirement check results</caption>
       <thead class="thead-dark">
         <tr>
-          <th data-field="id" data-sortable="true" data-sorter="idSorter">ID</th>
-          <th data-field="level" data-sortable="true" data-sorter="statusSorter">Level</th>
-          <th data-field="message" data-sortable="true">Message</th>
+          <th scope="col" data-field="id" data-sortable="true" data-sorter="idSorter">ID</th>
+          <th scope="col" data-field="level" data-sortable="true" data-sorter="statusSorter">Level</th>
+          <th scope="col" data-field="message" data-sortable="true">Message</th>
         </tr>
       </thead>
       <tbody>
@@ -88,11 +89,12 @@
   {% if (report.metadata.schema_results is defined and report.metadata.schema_results.messages|length > 0) or
     (report.metadata.schematron_results is defined and report.metadata.schematron_results.messages|length > 0) %}
   <table class="table table-striped" data-toggle="table">
+    <caption>Metadata requirement check results</caption>
     <thead class="thead-dark">
       <tr>
-        <th data-field="id" data-sortable="true" data-sorter="idSorter">ID</th>
-        <th data-field="level" data-sortable="true" data-sorter="statusSorter">Level</th>
-        <th data-field="message" data-sortable="true">Location &amp; Message</th>
+        <th scope="col" data-field="id" data-sortable="true" data-sorter="idSorter">ID</th>
+        <th scope="col" data-field="level" data-sortable="true" data-sorter="statusSorter">Level</th>
+        <th scope="col" data-field="message" data-sortable="true">Location &amp; Message</th>
       </tr>
     </thead>
     <tbody>
@@ -172,7 +174,7 @@
 {% endmacro %}
 
 {% macro metadata_badge(result) %}
-  <span class="{{ metadata_badge_class(result) }}">{% if result is not defined or result.schema_results is not defined %}NOT EXECUTED{% elif result.schema_results.status|lower == 'valid' and result.schematron_results.status|lower == 'valid' %}PASSED{% else %}FAILED{% endif %}</span>
+  <span class="{{ metadata_badge_class(result) }}">{% if result is not defined or result.schema_results is not defined %}FAILED{% elif result.schema_results.status|lower == 'valid' and result.schematron_results.status|lower == 'valid' %}PASSED{% else %}FAILED{% endif %}</span>
 {% endmacro %}
 
 {% macro metadata_badge_class(result) %}

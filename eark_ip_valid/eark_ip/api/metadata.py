@@ -245,31 +245,41 @@ class ValidationRules():
                 rule = ele
             elif ele.tag == SVRL_NS + 'failed-assert':
                 rule_id = ele.get('id', '')
-                if rep_skips and rule_id in self.REP_SKIPS:
+                if self._skip_assertion(rule_id, struct, rep_skips):
                     continue
-                if rule_id == 'CSIP60' and not struct.has_documentation():
-                    continue
-                if rule_id == 'CSIP88' and not struct.has_metadata():
-                    continue
-                if rule_id in ('CSIP97', 'CSIP113') and not struct.has_schemas():
-                    continue
-                severity = Severity.WARN
-                if ele.get('role') == 'ERROR':
-                    severity = Severity.ERROR
+                test_status, test_result = self._process_ele(rule_id, rule, ele)
+                if test_status == MetadataStatus.NOTVALID:
                     status = MetadataStatus.NOTVALID
-                elif ele.get('role') == 'INFO':
-                    severity = Severity.INFO
-                messages.append(
-                    TestResult(
+                messages.append(test_result)
+
+        return MetadataChecks(status=status, messages=messages)
+
+    def _skip_assertion(self, rule_id, struct, rep_skips):
+        if rep_skips and rule_id in self.REP_SKIPS:
+            return True
+        if rule_id == 'CSIP60' and not struct.has_documentation():
+            return True
+        if rule_id == 'CSIP88' and not struct.has_metadata():
+            return True
+        if rule_id in ('CSIP97', 'CSIP113') and not struct.has_schemas():
+            return True
+        return False
+    
+    def _process_ele(self, rule_id, rule, ele):
+        status = MetadataStatus.VALID
+        severity = Severity.WARN
+        if ele.get('role') == 'ERROR':
+            severity = Severity.ERROR
+            status = MetadataStatus.NOTVALID
+        elif ele.get('role') == 'INFO':
+            severity = Severity.INFO
+        return status, TestResult(
                         rule_id=rule_id,
                         location=rule.get('context').replace('/*[local-name()=\'', '') +
                         '/' + ele.get('test'),
                         message=ele.find(SVRL_NS + 'text').text,
                         severity=severity
-                    )
                 )
-
-        return MetadataChecks(status=status, messages=messages)
 
 class ValidationProfile():
     """ A complete set of Schematron rule sets that comprise a complete validation profile."""
