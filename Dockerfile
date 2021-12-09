@@ -21,7 +21,7 @@ RUN pip3 install --no-cache-dir .
 COPY ./eark_ip_valid/eark_ip/api/resources/schemas/*.xsd /usr/local/lib/python3.9/site-packages/eark_ip/api/resources/schemas/
 COPY ./eark_ip_valid/eark_ip/api/resources/profiles/*.xml /usr/local/lib/python3.9/site-packages/eark_ip/api/resources/profiles/
 COPY ./eark_ip_valid/eark_ip/api/resources/schematron/*.xml /usr/local/lib/python3.9/site-packages/eark_ip/api/resources/schematron/
-COPY ./eark_ip_rest/eark_ip_rest/resources/commons-ip2-cli-2.0.0.jar /usr/local/lib/python3.9/site-packages/eark_ip_rest/resources/commons-ip2-cli-2.0.0.jar
+COPY ./eark_ip_rest/eark_ip_rest/resources/commons-ip2-cli-2.0.1.jar /usr/local/lib/python3.9/site-packages/eark_ip_rest/resources/commons-ip2-cli-2.0.1.jar
 RUN pip3 freeze
 RUN pwd
 RUN ls -alh
